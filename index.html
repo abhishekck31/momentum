@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Momentum | Focus Dashboard</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter & Bebas Neue -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+    <!-- Tone.js for sound generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+
+    <style>
+        /* Vercel-inspired theme and animations */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000;
+            color: #fff;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden; /* Prevents scrollbars from sparkle effect */
+        }
+
+        .site-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3rem;
+            font-weight: 400;
+            letter-spacing: 0.3em;
+            background: linear-gradient(145deg, #f0f0f0, #aeaeae, #f0f0f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5), 0 0 15px rgba(255,255,255,0.2);
+            animation: fadeIn 1.5s ease;
+            padding-left: 0.3em; /* Compensate for letter-spacing */
+        }
+
+        @media (min-width: 768px) {
+            .site-title {
+                font-size: 4.5rem;
+            }
+        }
+
+        .component-card {
+            background-color: #111;
+            border: 1px solid #333;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn {
+            transition: all 0.2s ease;
+            border: 1px solid #333;
+        }
+        .mode-btn.active-mode {
+            background-color: #fff;
+            color: #000;
+            border-color: #fff;
+        }
+        .control-btn, .ai-action-btn {
+            background-color: #222;
+            border: 1px solid #333;
+            transition: all 0.2s ease;
+        }
+        .control-btn:hover, .ai-action-btn:hover {
+            border-color: #fff;
+        }
+        .start-btn {
+            background-color: #fff;
+            color: #000;
+            transition: transform 0.2s ease;
+        }
+        .start-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .task-item input:checked + label {
+            text-decoration: line-through;
+            color: #888;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes slideInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+        .animate-fade-in { animation: fadeIn 0.5s ease forwards; }
+        .animate-fade-out { animation: fadeOut 0.3s ease forwards; }
+        .animate-slide-in-up { animation: slideInUp 0.5s ease forwards; }
+        .animate-pop-in { animation: popIn 0.3s ease forwards; }
+        
+        .spinner {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Mouse Sparkle Effect */
+        .sparkle {
+            position: fixed;
+            width: 6px;
+            height: 6px;
+            background: #fff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            box-shadow: 0 0 8px #fff;
+            animation: sparkle-anim 0.8s forwards;
+        }
+
+        @keyframes sparkle-anim {
+            0% {
+                transform: scale(1) translate(0, 0);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(0) translate(var(--random-x, 0), var(--random-y, 0));
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="opacity-0 animate-fade-in">
+
+    <div id="app-container" class="min-h-screen flex flex-col items-center justify-start p-4 pt-8 md:pt-12">
+        
+        <header class="w-full text-center mb-8">
+            <h1 class="site-title">MOMENTUM</h1>
+        </header>
+
+        <main class="w-full max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+            
+            <!-- Left Side: Timer -->
+            <section class="component-card flex flex-col items-center justify-center p-6 rounded-2xl animate-slide-in-up" style="animation-delay: 100ms;">
+                <div class="flex space-x-2 mb-8 p-1.5 bg-black rounded-full border border-[#333]">
+                    <button id="mode-focus" class="mode-btn px-6 py-2 text-sm font-medium rounded-full">Focus</button>
+                    <button id="mode-short-break" class="mode-btn px-6 py-2 text-sm font-medium rounded-full">Short Break</button>
+                    <button id="mode-long-break" class="mode-btn px-6 py-2 text-sm font-medium rounded-full">Long Break</button>
+                </div>
+
+                <div class="mb-8">
+                    <h2 id="time-display" class="text-8xl md:text-9xl font-black tracking-tighter" style="color: var(--theme-color);">25:00</h2>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <button id="start-pause-btn" class="start-btn w-40 py-4 text-lg font-bold rounded-full">START</button>
+                    <button id="reset-btn" class="control-btn p-4 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"></path><path d="M21 21v-5h-5"></path></svg>
+                    </button>
+                     <button id="settings-btn" class="control-btn p-4 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Right Side: To-Do List -->
+            <section class="component-card p-6 rounded-2xl flex flex-col h-[60vh] lg:h-auto animate-slide-in-up" style="animation-delay: 200ms;">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold text-gray-200">Tasks</h2>
+                    <div id="task-actions" class="flex items-center gap-2">
+                        <!-- AI Action buttons will be injected here -->
+                    </div>
+                </div>
+                
+                <form id="task-form" class="flex items-center gap-2 mb-4">
+                    <input type="text" id="task-input" placeholder="Add a task or describe a goal..." class="w-full bg-black border-2 border-[#333] rounded-lg py-2 px-4 focus:outline-none focus:border-white transition-colors">
+                    <button type="button" id="ai-assist-btn" class="bg-black hover:border-white text-white font-bold p-2.5 rounded-lg border-2 border-[#333] transition-colors flex items-center justify-center w-12">
+                        <span id="ai-btn-text">✨</span>
+                        <div id="ai-spinner" class="spinner hidden"></div>
+                    </button>
+                </form>
+
+                <div class="flex-grow overflow-y-auto pr-2">
+                    <ul id="task-list" class="space-y-2">
+                        <!-- Tasks will be injected here by JavaScript -->
+                    </ul>
+                </div>
+            </section>
+        </main>
+        
+        <!-- General Notification Modal -->
+        <div id="notification-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div class="component-card p-8 rounded-2xl shadow-lg text-center max-w-sm w-full animate-pop-in">
+                <h3 id="modal-title" class="text-2xl font-bold mb-4"></h3>
+                <p id="modal-message" class="text-gray-400 mb-6 whitespace-pre-wrap"></p>
+                <button id="modal-ok-btn" class="bg-white text-black font-bold py-2 px-6 rounded-lg w-full">OK</button>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div class="component-card p-8 rounded-2xl shadow-lg text-left max-w-sm w-full animate-pop-in">
+                <h3 class="text-2xl font-bold mb-6">Timer Settings</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label for="focus-input" class="block text-sm font-medium text-gray-400 mb-1">Focus (minutes)</label>
+                        <input type="number" id="focus-input" class="w-full bg-black border-2 border-[#333] rounded-lg p-2 focus:outline-none focus:border-white transition-colors">
+                    </div>
+                     <div>
+                        <label for="short-break-input" class="block text-sm font-medium text-gray-400 mb-1">Short Break (minutes)</label>
+                        <input type="number" id="short-break-input" class="w-full bg-black border-2 border-[#333] rounded-lg p-2 focus:outline-none focus:border-white transition-colors">
+                    </div>
+                     <div>
+                        <label for="long-break-input" class="block text-sm font-medium text-gray-400 mb-1">Long Break (minutes)</label>
+                        <input type="number" id="long-break-input" class="w-full bg-black border-2 border-[#333] rounded-lg p-2 focus:outline-none focus:border-white transition-colors">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-4 mt-8">
+                    <button id="settings-cancel-btn" class="control-btn px-4 py-2 rounded-lg">Cancel</button>
+                    <button id="settings-save-btn" class="start-btn px-4 py-2 rounded-lg text-sm">Save</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- CONFIGURATION ---
+            let timers = {
+                focus: { duration: 25, color: '#ffffff' },
+                shortBreak: { duration: 5, color: '#2dd4bf' },
+                longBreak: { duration: 15, color: '#a78bfa' }
+            };
+
+            // --- STATE ---
+            let currentMode = 'focus';
+            let remainingTime;
+            let timerInterval = null;
+            let tasks = [];
+            let originalTitle = document.title;
+
+            // --- DOM ELEMENTS ---
+            const timeDisplay = document.getElementById('time-display');
+            const startPauseBtn = document.getElementById('start-pause-btn');
+            const resetBtn = document.getElementById('reset-btn');
+            const settingsBtn = document.getElementById('settings-btn');
+            const modeButtons = { focus: document.getElementById('mode-focus'), shortBreak: document.getElementById('mode-short-break'), longBreak: document.getElementById('mode-long-break') };
+            const taskForm = document.getElementById('task-form');
+            const taskInput = document.getElementById('task-input');
+            const taskList = document.getElementById('task-list');
+            const taskActions = document.getElementById('task-actions');
+            const aiAssistBtn = document.getElementById('ai-assist-btn');
+            const aiBtnText = document.getElementById('ai-btn-text');
+            const aiSpinner = document.getElementById('ai-spinner');
+            const notificationModal = document.getElementById('notification-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalMessage = document.getElementById('modal-message');
+            const modalOkBtn = document.getElementById('modal-ok-btn');
+            const settingsModal = document.getElementById('settings-modal');
+            const focusInput = document.getElementById('focus-input');
+            const shortBreakInput = document.getElementById('short-break-input');
+            const longBreakInput = document.getElementById('long-break-input');
+            const settingsSaveBtn = document.getElementById('settings-save-btn');
+            const settingsCancelBtn = document.getElementById('settings-cancel-btn');
+
+            // --- AUDIO ---
+            let synth;
+            if (window.Tone) synth = new Tone.Synth().toDestination();
+            const playAlarmSound = () => { if (synth) synth.triggerAttackRelease("C5", "8n", Tone.now()); };
+
+            // --- TIMER FUNCTIONS ---
+            const updateDisplay = () => {
+                const minutes = Math.floor(remainingTime / 60);
+                const seconds = remainingTime % 60;
+                timeDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                document.title = `${timeDisplay.textContent} - ${currentMode.charAt(0).toUpperCase() + currentMode.slice(1)} | Momentum`;
+            };
+            const startTimer = () => {
+                if (timerInterval) return;
+                if (window.Tone && Tone.context.state !== 'running') Tone.start();
+                timerInterval = setInterval(() => {
+                    remainingTime--;
+                    updateDisplay();
+                    if (remainingTime <= 0) {
+                        clearInterval(timerInterval);
+                        timerInterval = null;
+                        playAlarmSound();
+                        handleTimerCompletion();
+                    }
+                }, 1000);
+                startPauseBtn.textContent = 'PAUSE';
+            };
+            const pauseTimer = () => {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                startPauseBtn.textContent = 'START';
+                document.title = originalTitle;
+            };
+            const resetTimer = () => {
+                pauseTimer();
+                remainingTime = timers[currentMode].duration * 60;
+                updateDisplay();
+            };
+            const handleTimerCompletion = () => {
+                const nextMode = currentMode === 'focus' ? 'shortBreak' : 'focus';
+                const title = currentMode === 'focus' ? "Focus session over!" : "Break's over!";
+                const message = currentMode === 'focus' ? "Time for a short break. Well done!" : "Time to get back to focus.";
+                showNotification(title, message);
+                switchMode(nextMode);
+            };
+            const switchMode = (mode) => {
+                currentMode = mode;
+                resetTimer();
+                updateTheme();
+            };
+            const updateTheme = () => {
+                timeDisplay.style.color = timers[currentMode].color;
+                Object.values(modeButtons).forEach(btn => btn.classList.remove('active-mode'));
+                modeButtons[currentMode].classList.add('active-mode');
+            };
+
+            // --- TASK FUNCTIONS ---
+            const saveTasks = () => localStorage.setItem('vercelPomodoroTasks', JSON.stringify(tasks));
+            const loadTasks = () => {
+                const storedTasks = localStorage.getItem('vercelPomodoroTasks');
+                if (storedTasks) tasks = JSON.parse(storedTasks);
+                renderTasks();
+            };
+            const renderTasks = () => {
+                taskList.innerHTML = '';
+                if (tasks.length === 0) {
+                    taskList.innerHTML = `<li class="text-gray-500 text-center py-4">No tasks yet. Add one above!</li>`;
+                } else {
+                    tasks.forEach(task => {
+                        const taskElement = document.createElement('li');
+                        taskElement.className = 'task-item flex items-center justify-between bg-[#222] p-3 rounded-lg border border-[#333]';
+                        taskElement.dataset.id = task.id;
+                        taskElement.style.opacity = 0;
+                        taskElement.classList.add('animate-slide-in-up');
+                        taskElement.innerHTML = `
+                            <div class="flex items-center flex-grow min-w-0">
+                                <input type="checkbox" id="task-${task.id}" class="h-5 w-5 rounded border-gray-500 bg-transparent text-white focus:ring-offset-0 focus:ring-0" ${task.completed ? 'checked' : ''}>
+                                <label for="task-${task.id}" class="ml-3 text-gray-300 cursor-pointer transition-colors truncate">${task.text}</label>
+                            </div>
+                            <button class="delete-task-btn text-gray-500 hover:text-red-500 transition-colors flex-shrink-0 ml-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            </button>`;
+                        taskList.appendChild(taskElement);
+                    });
+                }
+                renderTaskActionButtons();
+            };
+            const renderTaskActionButtons = () => {
+                taskActions.innerHTML = '';
+                if (tasks.length > 1) {
+                    const prioritizeBtn = document.createElement('button');
+                    prioritizeBtn.id = 'prioritize-btn';
+                    prioritizeBtn.className = 'ai-action-btn px-3 py-1 text-xs rounded-lg flex items-center gap-1';
+                    prioritizeBtn.innerHTML = '<span>Prioritize</span> ✨';
+                    prioritizeBtn.onclick = prioritizeTasks;
+                    taskActions.appendChild(prioritizeBtn);
+                }
+                if (tasks.some(t => t.completed)) {
+                    const summarizeBtn = document.createElement('button');
+                    summarizeBtn.id = 'summarize-btn';
+                    summarizeBtn.className = 'ai-action-btn px-3 py-1 text-xs rounded-lg flex items-center gap-1';
+                    summarizeBtn.innerHTML = '<span>Summarize</span> ✨';
+                    summarizeBtn.onclick = summarizeDay;
+                    taskActions.appendChild(summarizeBtn);
+                }
+            };
+            const addTask = (text) => {
+                tasks.unshift({ id: crypto.randomUUID(), text, completed: false });
+                saveTasks();
+                renderTasks();
+            };
+            const toggleTask = (id) => {
+                const taskIndex = tasks.findIndex(task => task.id == id);
+                if (taskIndex > -1) tasks[taskIndex].completed = !tasks[taskIndex].completed;
+                saveTasks();
+                renderTasks();
+            };
+            const deleteTask = (id) => {
+                const taskElement = document.querySelector(`.task-item[data-id="${id}"]`);
+                if (taskElement) {
+                    taskElement.classList.remove('animate-slide-in-up');
+                    taskElement.classList.add('animate-fade-out');
+                    taskElement.addEventListener('animationend', () => {
+                        tasks = tasks.filter(task => task.id != id);
+                        saveTasks();
+                        renderTasks();
+                    }, { once: true });
+                }
+            };
+
+            // --- GEMINI AI FUNCTIONS ---
+            const callGeminiAPI = async (payload, button) => {
+                const originalText = button.innerHTML;
+                button.innerHTML = '<div class="spinner mx-auto"></div>';
+                button.disabled = true;
+
+                const apiKey = ""; // Leave empty
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+                    const result = await response.json();
+                    if (result.candidates && result.candidates[0].content.parts[0].text) {
+                        return result.candidates[0].content.parts[0].text;
+                    } else {
+                        throw new Error("Could not parse the AI's response.");
+                    }
+                } catch (error) {
+                    console.error("Gemini API call failed:", error);
+                    showNotification("AI Error", "An error occurred while contacting the AI. Please try again.");
+                    return null;
+                } finally {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }
+            };
+
+            const breakdownTask = async () => {
+                const text = taskInput.value.trim();
+                if (!text) {
+                    showNotification("Input Needed", "Please enter a task or goal to break down.");
+                    return;
+                }
+                const prompt = `Break down the following high-level task into a short list of actionable sub-tasks: "${text}".`;
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: { type: "OBJECT", properties: { subtasks: { type: "ARRAY", items: { type: "STRING" } } } }
+                    }
+                };
+                const resultText = await callGeminiAPI(payload, aiAssistBtn);
+                if (resultText) {
+                    const jsonResponse = JSON.parse(resultText);
+                    if (jsonResponse.subtasks && jsonResponse.subtasks.length > 0) {
+                        tasks.unshift(...jsonResponse.subtasks.map(subtask => ({ id: crypto.randomUUID(), text: subtask, completed: false })));
+                        saveTasks();
+                        renderTasks();
+                        taskInput.value = '';
+                    }
+                }
+            };
+
+            const prioritizeTasks = async () => {
+                const taskTexts = tasks.map(t => t.text);
+                const prompt = `Here is a list of tasks: ${JSON.stringify(taskTexts)}. Please reorder this list into a logical and productive sequence for the day. Return only a JSON object with a single key "reordered_tasks" which is an array of the task strings in the new order.`;
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: { type: "OBJECT", properties: { reordered_tasks: { type: "ARRAY", items: { type: "STRING" } } } }
+                    }
+                };
+                const resultText = await callGeminiAPI(payload, document.getElementById('prioritize-btn'));
+                if (resultText) {
+                    const jsonResponse = JSON.parse(resultText);
+                    const reorderedTaskTexts = jsonResponse.reordered_tasks;
+                    const taskMap = new Map(tasks.map(t => [t.text, t]));
+                    tasks = reorderedTaskTexts.map(text => taskMap.get(text)).filter(Boolean);
+                    saveTasks();
+                    renderTasks();
+                }
+            };
+
+            const summarizeDay = async () => {
+                const completedTasks = tasks.filter(t => t.completed).map(t => t.text);
+                const remainingTasks = tasks.filter(t => !t.completed).map(t => t.text);
+                const prompt = `Here is a summary of my day. Completed tasks: ${JSON.stringify(completedTasks)}. Remaining tasks: ${JSON.stringify(remainingTasks)}. Please write a brief, encouraging summary of my accomplishments and a short, motivating sentence for tomorrow.`;
+                const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+                const resultText = await callGeminiAPI(payload, document.getElementById('summarize-btn'));
+                if (resultText) {
+                    showNotification("Your Daily Summary", resultText);
+                }
+            };
+
+            // --- MODAL FUNCTIONS ---
+            const showNotification = (title, message) => {
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                notificationModal.classList.remove('hidden');
+            };
+            const hideNotification = () => notificationModal.classList.add('hidden');
+            const openSettingsModal = () => {
+                focusInput.value = timers.focus.duration;
+                shortBreakInput.value = timers.shortBreak.duration;
+                longBreakInput.value = timers.longBreak.duration;
+                settingsModal.classList.remove('hidden');
+            };
+            const closeSettingsModal = () => settingsModal.classList.add('hidden');
+            const saveSettings = () => {
+                const newFocus = parseInt(focusInput.value, 10);
+                const newShort = parseInt(shortBreakInput.value, 10);
+                const newLong = parseInt(longBreakInput.value, 10);
+                if (newFocus > 0 && newShort > 0 && newLong > 0) {
+                    timers.focus.duration = newFocus;
+                    timers.shortBreak.duration = newShort;
+                    timers.longBreak.duration = newLong;
+                    localStorage.setItem('vercelPomodoroSettings', JSON.stringify(timers));
+                    closeSettingsModal();
+                    resetTimer();
+                } else {
+                    showNotification("Invalid Input", "Please enter valid numbers greater than 0.");
+                }
+            };
+            
+            // --- MOUSE SPARKLE EFFECT ---
+            let canCreateSparkle = true;
+            document.addEventListener('mousemove', (e) => {
+                if (canCreateSparkle) {
+                    createSparkle(e.clientX, e.clientY);
+                    canCreateSparkle = false;
+                    setTimeout(() => {
+                        canCreateSparkle = true;
+                    }, 50); // Throttle to prevent too many elements
+                }
+            });
+
+            function createSparkle(x, y) {
+                const sparkle = document.createElement('div');
+                sparkle.className = 'sparkle';
+                sparkle.style.left = `${x}px`;
+                sparkle.style.top = `${y}px`;
+                
+                const randomX = (Math.random() - 0.5) * 60;
+                const randomY = (Math.random() - 0.5) * 60;
+                sparkle.style.setProperty('--random-x', `${randomX}px`);
+                sparkle.style.setProperty('--random-y', `${randomY}px`);
+
+                document.body.appendChild(sparkle);
+
+                sparkle.addEventListener('animationend', () => {
+                    sparkle.remove();
+                });
+            }
+
+            // --- EVENT LISTENERS ---
+            startPauseBtn.addEventListener('click', () => { if (timerInterval) pauseTimer(); else startTimer(); });
+            resetBtn.addEventListener('click', resetTimer);
+            settingsBtn.addEventListener('click', openSettingsModal);
+            Object.keys(modeButtons).forEach(mode => modeButtons[mode].addEventListener('click', () => switchMode(mode)));
+            taskForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const text = taskInput.value.trim();
+                if (text) {
+                    addTask(text);
+                    taskInput.value = '';
+                }
+            });
+            aiAssistBtn.addEventListener('click', breakdownTask);
+            taskList.addEventListener('click', (e) => {
+                const taskLi = e.target.closest('.task-item');
+                if (!taskLi) return;
+                const taskId = taskLi.dataset.id;
+                if (e.target.matches('input[type="checkbox"]')) toggleTask(taskId);
+                if (e.target.closest('.delete-task-btn')) deleteTask(taskId);
+            });
+            modalOkBtn.addEventListener('click', hideNotification);
+            notificationModal.addEventListener('click', (e) => { if (e.target === notificationModal) hideNotification(); });
+            settingsSaveBtn.addEventListener('click', saveSettings);
+            settingsCancelBtn.addEventListener('click', closeSettingsModal);
+            settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeSettingsModal(); });
+
+            // --- INITIALIZATION ---
+            const initialize = () => {
+                const savedSettings = localStorage.getItem('vercelPomodoroSettings');
+                if (savedSettings) timers = JSON.parse(savedSettings);
+                remainingTime = timers[currentMode].duration * 60;
+                updateTheme();
+                updateDisplay();
+                loadTasks();
+            };
+            initialize();
+        });
+    </script>
+</body>
+</html>
